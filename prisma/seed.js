@@ -1,12 +1,14 @@
-process.env.DATABASE_URL = 'file:./prisma/dev.db';
-
 const { PrismaClient } = require('@prisma/client');
 const { PrismaLibSql } = require('@prisma/adapter-libsql');
 const crypto = require('crypto');
 
+const url = process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL || 'file:./prisma/dev.db';
+const authToken = process.env.DATABASE_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN;
+
 // In Prisma v7, we configure the adapter using PrismaLibSql
 const adapter = new PrismaLibSql({
-  url: 'file:./prisma/dev.db'
+  url,
+  authToken
 });
 const prisma = new PrismaClient({ adapter });
 
