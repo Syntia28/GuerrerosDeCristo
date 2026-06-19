@@ -1,7 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import * as PrismaPkg from "@prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+const PrismaClient = (PrismaPkg as any).PrismaClient;
+
+const globalForPrisma = globalThis as unknown as { prisma?: any };
 
 const getPrismaClient = () => {
   const adapter = new PrismaLibSql({
