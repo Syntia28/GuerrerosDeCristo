@@ -2,7 +2,16 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
-import type { User, Ticket } from "@prisma/client";
+
+type TicketSimple = { price: number; paid: boolean };
+type UserWithTickets = {
+  id: number;
+  name: string;
+  username: string;
+  role: string;
+  createdAt: Date;
+  tickets: TicketSimple[];
+};
 
 export async function GET() {
   try {
@@ -27,12 +36,12 @@ export async function GET() {
         tickets: true
       },
       orderBy: { name: "asc" }
-    }) as (User & { tickets: Ticket[] })[];
+    }) as UserWithTickets[];
 
-    const users = usersRaw.map((u: User & { tickets: Ticket[] }) => {
+    const users = usersRaw.map((u: UserWithTickets) => {
       const totalSold = u.tickets.length;
-      const totalMoney = u.tickets.reduce((sum, t) => sum + t.price, 0);
-      const paidMoney = u.tickets.filter((t) => t.paid).reduce((sum, t) => sum + t.price, 0);
+      const totalMoney = u.tickets.reduce((sum: number, t: TicketSimple) => sum + t.price, 0);
+      const paidMoney = u.tickets.filter((t: TicketSimple) => t.paid).reduce((sum: number, t: TicketSimple) => sum + t.price, 0);
       const pendingMoney = totalMoney - paidMoney;
 
       return {
