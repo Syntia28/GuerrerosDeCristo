@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 type TicketSimple = { price: number; paid: boolean };
 type UserWithTickets = {
   id: number;
@@ -16,6 +18,19 @@ type TicketWithSoldBy = TicketSimple & { soldBy?: { id: number; name: string; us
 
 export async function GET() {
   try {
+    // During builds (or when DATABASE_URL is not configured in the deployment),
+    // avoid initializing the database to prevent build-time failures.
+    if (!process.env.DATABASE_URL) {
+      console.warn("DATABASE_URL not set — returning empty admin data during build.");
+      const stats = {
+        totalSold: 0,
+        totalMoney: 0,
+        paidMoney: 0,
+        pendingMoney: 0,
+        totalUsers: 0
+      };
+      return NextResponse.json({ success: true, stats, users: [], tickets: [] });
+    }
     const cookieStore = await cookies();
     const token = cookieStore.get("session")?.value;
 
