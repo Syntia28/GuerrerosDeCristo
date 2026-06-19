@@ -63,7 +63,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Register API error:", error);
     return NextResponse.json(
-      { error: "Error al registrar el nuevo integrante." },
+      { error: `Error al registrar el nuevo integrante: ${error?.message || error}` },
       { status: 500 }
     );
   }
