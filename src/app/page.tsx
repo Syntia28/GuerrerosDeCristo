@@ -1,53 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 
-interface Ticket {
-  id: number;
-  number: number;
-  clientName: string;
-  clientPhone: string;
-  paid: boolean;
-  price: number;
-  soldBy?: { name: string };
-}
-
-const maskPhone = (phone: string) => {
-  if (phone.length <= 6) return phone;
-  return `${phone.substring(0, 3)}***${phone.substring(phone.length - 3)}`;
-};
-
 export default function Home() {
-  const [ticketNumber, setTicketNumber] = useState("");
-  const [ticket, setTicket] = useState<Ticket | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState("");
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ticketNumber.trim()) return;
-    setSearching(true);
-    setSearchError("");
-    setTicket(null);
-    setHasSearched(false);
-    try {
-      const res = await fetch(`/api/tickets?number=${encodeURIComponent(ticketNumber.trim())}`);
-      if (res.ok) {
-        const data = await res.json();
-        setTicket(data.ticket);
-        setHasSearched(true);
-      } else {
-        const errorData = await res.json();
-        setSearchError(errorData.error || "Ocurrió un error al buscar el boleto.");
-      }
-    } catch {
-      setSearchError("Error de conexión. Inténtalo de nuevo.");
-    } finally {
-      setSearching(false);
-    }
-  };
 
   return (
     <>
@@ -471,50 +426,6 @@ export default function Home() {
           border: 1px solid rgba(255,255,255,0.08);
         }
 
-        /* ── CAMPAMENTOS ──────────────────────────────────────────────── */
-        .campamento-card {
-          display: grid; grid-template-columns: 1fr 1fr; gap: 64px;
-          align-items: center;
-        }
-        .campamento-img-wrap {
-          border-radius: var(--radius-lg); overflow: hidden; aspect-ratio: 4/3;
-          position: relative;
-        }
-        .campamento-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
-        .campamento-img-wrap::after {
-          content: ''; position: absolute; inset: 0;
-          background: linear-gradient(to top, rgba(10,10,10,0.5) 0%, transparent 50%);
-        }
-        .campamento-date-badge {
-          display: inline-flex; align-items: center; gap: 8px;
-          padding: 8px 16px; border-radius: 30px;
-          background: var(--gold-dim); border: 1px solid var(--gold-border);
-          color: #b28504; font-size: 12px; font-weight: 700;
-          text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px;
-        }
-        .bg-dark .campamento-date-badge { color: var(--gold); }
-        .bg-yellow .campamento-date-badge { color: #111; border-color: rgba(0,0,0,0.1); background: rgba(0,0,0,0.05); }
-        .campamento-title {
-          font-family: var(--font-display); font-size: clamp(48px, 6vw, 72px);
-          line-height: 0.9; margin-bottom: 8px;
-        }
-        .campamento-tagline {
-          font-size: 13px; color: #b28504; font-weight: 600;
-          text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 20px;
-        }
-        .bg-dark .campamento-tagline { color: var(--gold); }
-        .bg-yellow .campamento-tagline { color: #000; }
-        .campamento-desc {
-          font-size: 15px; opacity: 0.8; line-height: 1.75; margin-bottom: 32px;
-        }
-        .campamento-features-grid {
-          display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 36px;
-        }
-        .campamento-feature {
-          display: flex; align-items: center; gap: 10px;
-          font-size: 12px; font-weight: 600; opacity: 0.9;
-          text-transform: uppercase; letter-spacing: 0.06em;
-        }
 
         /* ── GALERÍA ──────────────────────────────────────────────────── */
         .galeria-grid {
@@ -723,96 +634,39 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 2. CONSULTA DE BOLETOS (Sección con fondo Amarillo/Oro) */}
+        {/* 2. GRAN RIFA ANUAL (Sección con fondo Amarillo/Oro) */}
         <section id="rifas" className="tickets-section bg-yellow">
-          <div className="tickets-inner">
+          <div className="tickets-inner" style={{ maxWidth: 800 }}>
             <div className="tickets-card">
-              <div className="tickets-card-header">
-                <span className="eyebrow">Rifas</span>
-                <h2 className="gc-title" style={{ fontSize: "clamp(28px,4vw,40px)", marginTop: 12 }}>
-                  Consulta tu Boleto
+              <div className="tickets-card-header" style={{ marginBottom: 28 }}>
+                <span className="eyebrow">Rifa Pro-Fondos</span>
+                <h2 className="gc-title" style={{ fontSize: "clamp(32px, 5vw, 48px)", marginTop: 12 }}>
+                  Gran Rifa Anual
                 </h2>
-                <p className="gc-subtitle" style={{ fontSize: 14, marginTop: 10 }}>
-                  Ingresa el número de tu boleto para verificar su estado, quién lo compró y qué integrante lo registró.
+                <p className="gc-subtitle" style={{ fontSize: 15, marginTop: 10, maxWidth: "none" }}>
+                  ¡Apoya a nuestro grupo juvenil y participa para ganar increíbles premios! Cada boleto contribuye a hacer posibles nuestras actividades y campamentos.
                 </p>
               </div>
 
-              <form onSubmit={handleSearch} className="tickets-form">
-                <div className="tickets-input-wrap">
-                  <i className="fas fa-hashtag tickets-input-icon" />
-                  <input
-                    type="number"
-                    placeholder="Ej. 7, 14, 25…"
-                    value={ticketNumber}
-                    onChange={(e) => setTicketNumber(e.target.value)}
-                    className="tickets-input"
-                    required
-                  />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, margin: '24px 0 36px' }} className="nosotros-grid">
+                <div style={{ background: 'rgba(255,255,255,0.4)', borderRadius: 12, padding: 20, textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)' }}>
+                  <i className="fas fa-ticket-alt" style={{ fontSize: 24, color: '#111', marginBottom: 8 }}></i>
+                  <h4 style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Valor del Boleto</h4>
+                  <p style={{ fontSize: 22, fontWeight: 900, marginTop: 4 }}>S/. 5.00</p>
                 </div>
-                <button type="submit" disabled={searching} className="gc-btn gc-btn-gold gc-btn-md" style={{ minWidth: 140 }}>
-                  {searching
-                    ? <><i className="fas fa-spinner fa-spin" /> Buscando…</>
-                    : <><i className="fas fa-search" /> Consultar</>
-                  }
-                </button>
-              </form>
+                <div style={{ background: 'rgba(255,255,255,0.4)', borderRadius: 12, padding: 20, textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)' }}>
+                  <i className="fas fa-calendar-alt" style={{ fontSize: 24, color: '#111', marginBottom: 8 }}></i>
+                  <h4 style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fecha del Sorteo</h4>
+                  <p style={{ fontSize: 16, fontWeight: 800, marginTop: 8 }}>30 de Julio · 8:00 PM</p>
+                </div>
+              </div>
 
-              {searchError && (
-                <div className="tickets-error">
-                  <i className="fas fa-exclamation-circle" />
-                  {searchError}
-                </div>
-              )}
-
-              {hasSearched && (
-                <div className="ticket-result">
-                  {ticket ? (
-                    <div className="ticket-sold">
-                      <div className="ticket-sold-header">
-                        <div>
-                          <div className="ticket-num">Boleto Nº {ticket.number}</div>
-                          <div className="ticket-label">Rifa Pro Fondos · Guerreros de Cristo</div>
-                        </div>
-                        <span className={`badge ${ticket.paid ? "badge-green" : "badge-amber"}`}>
-                          <i className={`fas ${ticket.paid ? "fa-check-circle" : "fa-clock"}`} />
-                          {ticket.paid ? "Pagado" : "Pendiente"}
-                        </span>
-                      </div>
-                      <div className="ticket-sold-body">
-                        <div className="ticket-grid">
-                          <div>
-                            <div className="ticket-field-label">Comprado por</div>
-                            <div className="ticket-field-value">{ticket.clientName}</div>
-                            <div className="ticket-field-sub">{maskPhone(ticket.clientPhone)}</div>
-                          </div>
-                          <div>
-                            <div className="ticket-field-label">Precio</div>
-                            <div className="ticket-field-value">S/. {ticket.price.toFixed(2)}</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="ticket-sold-footer">
-                        <span>Registrado por <strong style={{ color: "inherit" }}>{ticket.soldBy?.name ?? "—"}</strong></span>
-                        <span style={{ fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em" }}>Vendido</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="ticket-available">
-                      <div className="ticket-available-icon"><i className="fas fa-check-circle" /></div>
-                      <h4>¡El boleto Nº {ticketNumber} está disponible!</h4>
-                      <p>Este número aún no fue comprado. Contáctanos para adquirirlo.</p>
-                      <a
-                        href={`https://wa.me/+51993790722?text=Quiero%20comprar%20el%20boleto%20número%20${ticketNumber}%20para%20la%20rifa`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="gc-btn gc-btn-green gc-btn-md"
-                      >
-                        <i className="fab fa-whatsapp" /> Comprar este boleto
-                      </a>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div style={{ textAlign: "center" }}>
+                <Link href="/rifa" className="gc-btn gc-btn-gold gc-btn-lg" style={{ minWidth: 240, textDecoration: 'none', background: '#111111', color: 'var(--gold)' }}>
+                  <i className="fas fa-gift" />
+                  Ver Premios y Consultar Boleto
+                </Link>
+              </div>
             </div>
           </div>
         </section>
@@ -922,61 +776,6 @@ export default function Home() {
                     <span className="servicio-tag">Contenido digital</span>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 5. CAMPAMENTOS (Sección con fondo Amarillo/Oro) */}
-        <section id="campamentos" className="gc-section bg-yellow">
-          <div className="gc-container">
-            <div className="gc-title-block">
-              <span className="eyebrow">Retiros espirituales</span>
-              <h2 className="gc-title" style={{ marginTop: 12 }}>Campamentos</h2>
-              <p className="gc-subtitle" style={{ marginTop: 12 }}>
-                Experiencias transformadoras para jóvenes que buscan fortalecer su fe y comunidad.
-              </p>
-              <div className="gc-rule" />
-            </div>
-
-            <div className="campamento-card">
-              <div className="campamento-img-wrap">
-                <img src="/imagenes/roar.jpeg" alt="Campamento ROAR" />
-              </div>
-              <div>
-                <div className="campamento-date-badge">
-                  <i className="fas fa-calendar-alt" />
-                  2 — 5 de Abril 2026
-                </div>
-                <div className="campamento-title">ROAR</div>
-                <div className="campamento-tagline">El León Vuelve a Rugir</div>
-                <p className="campamento-desc">
-                  Un campamento transformador lleno de juegos, testimonios y momentos inolvidables.
-                  Prepárate para una experiencia espiritual donde el león volverá a rugir en tu corazón.
-                </p>
-                <div className="campamento-features-grid">
-                  {[
-                    { icon: "fa-gamepad", label: "Juegos Interactivos" },
-                    { icon: "fa-heart", label: "Testimonios" },
-                    { icon: "fa-pray", label: "Actividades Espirituales" },
-                    { icon: "fa-users", label: "Convivencia" },
-                  ].map((f) => (
-                    <div key={f.label} className="campamento-feature">
-                      <i className={`fas ${f.icon}`} style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(0,0,0,0.06)", border: "1px solid rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#111", fontSize: 13, flexShrink: 0 }} />
-                      {f.label}
-                    </div>
-                  ))}
-                </div>
-                <a
-                  href="https://wa.me/51993790722?text=Quiero%20más%20información%20sobre%20el%20campamento"
-                  className="gc-btn gc-btn-gold gc-btn-lg"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ width: "100%", justifyContent: "center" }}
-                >
-                  <i className="fab fa-whatsapp" />
-                  Más información
-                </a>
               </div>
             </div>
           </div>

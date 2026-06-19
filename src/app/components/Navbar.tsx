@@ -38,10 +38,10 @@ export default function Navbar() {
     { name: "Inicio", href: "/#inicio" },
     { name: "Nosotros", href: "/#nosotros" },
     { name: "Servicios", href: "/#servicios" },
-    { name: "Campamentos", href: "/#campamentos" },
+    { name: "Campamentos", href: "/campamentos" },
     { name: "Galería", href: "/#galeria" },
     { name: "Contacto", href: "/#contacto" },
-    { name: "Rifas", href: "/#rifas" },
+    { name: "Rifas", href: "/rifa" },
   ];
 
   return (
