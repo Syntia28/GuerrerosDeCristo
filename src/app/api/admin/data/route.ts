@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import type { User, Ticket } from "@prisma/client";
 
 export async function GET() {
   try {
@@ -26,9 +27,9 @@ export async function GET() {
         tickets: true
       },
       orderBy: { name: "asc" }
-    });
+    }) as (User & { tickets: Ticket[] })[];
 
-    const users = usersRaw.map((u) => {
+    const users = usersRaw.map((u: User & { tickets: Ticket[] }) => {
       const totalSold = u.tickets.length;
       const totalMoney = u.tickets.reduce((sum, t) => sum + t.price, 0);
       const paidMoney = u.tickets.filter((t) => t.paid).reduce((sum, t) => sum + t.price, 0);
@@ -80,7 +81,7 @@ export async function GET() {
       users,
       tickets
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("GET admin data API error:", error);
     return NextResponse.json(
       { error: "Error interno del servidor al obtener datos administrativos." },
