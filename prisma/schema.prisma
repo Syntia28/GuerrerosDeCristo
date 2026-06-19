@@ -1,0 +1,33 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("MEMBER") // MEMBER, ADMIN
+  tickets      Ticket[]
+  createdAt    DateTime @default(now())
+}
+
+model Ticket {
+  id          Int      @id @default(autoincrement())
+  number      Int      @unique
+  clientName  String
+  clientPhone String
+  price       Float    @default(10.0)
+  paid        Boolean  @default(false)
+  soldBy      User     @relation(fields: [soldById], references: [id])
+  soldById    Int
+  soldAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
