@@ -34,8 +34,8 @@ export async function GET(req: Request) {
       // If no token, return only a list of sold numbers so the selector knows which are occupied
       const soldTickets = await db.ticket.findMany({
         select: { number: true }
-      });
-      return NextResponse.json({ soldNumbers: soldTickets.map((t) => t.number) });
+      }) as { number: number }[];
+      return NextResponse.json({ soldNumbers: soldTickets.map((t: { number: number }) => t.number) });
     }
 
     const payload = await verifyToken(token);
@@ -54,7 +54,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ tickets });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("GET tickets API error:", error);
     return NextResponse.json(
       { error: "Error al obtener los boletos de rifa." },
@@ -122,7 +122,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true, ticket });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST ticket API error:", error);
     return NextResponse.json(
       { error: "Error al registrar la venta del boleto." },
