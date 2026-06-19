@@ -12,6 +12,7 @@ type UserWithTickets = {
   createdAt: Date;
   tickets: TicketSimple[];
 };
+type TicketWithSoldBy = TicketSimple & { soldBy?: { id: number; name: string; username: string } };
 
 export async function GET() {
   try {
@@ -67,12 +68,12 @@ export async function GET() {
         }
       },
       orderBy: { number: "asc" }
-    });
+    }) as TicketWithSoldBy[];
 
     // 3. Compute global statistics
     const totalSold = tickets.length;
-    const totalMoney = tickets.reduce((sum, t) => sum + t.price, 0);
-    const paidMoney = tickets.filter((t) => t.paid).reduce((sum, t) => sum + t.price, 0);
+    const totalMoney = tickets.reduce((sum: number, t: TicketWithSoldBy) => sum + t.price, 0);
+    const paidMoney = tickets.filter((t: TicketWithSoldBy) => t.paid).reduce((sum: number, t: TicketWithSoldBy) => sum + t.price, 0);
     const pendingMoney = totalMoney - paidMoney;
     const totalUsers = users.length;
 
