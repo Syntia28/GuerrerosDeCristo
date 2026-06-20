@@ -19,28 +19,34 @@ const maskPhone = (phone: string) => {
 };
 
 export default function RifaPage() {
-  const [ticketNumber, setTicketNumber] = useState("");
-  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Ticket[]>([]);
+  const [singleResult, setSingleResult] = useState<Ticket | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ticketNumber.trim()) return;
+    if (!searchQuery.trim()) return;
     setSearching(true);
     setSearchError("");
-    setTicket(null);
+    setSearchResults([]);
+    setSingleResult(null);
     setHasSearched(false);
     try {
-      const res = await fetch(`/api/tickets?number=${encodeURIComponent(ticketNumber.trim())}`);
+      const res = await fetch(`/api/tickets?query=${encodeURIComponent(searchQuery.trim())}`);
       if (res.ok) {
         const data = await res.json();
-        setTicket(data.ticket);
+        if (data.ticket !== undefined) {
+          setSingleResult(data.ticket);
+        } else if (data.tickets !== undefined) {
+          setSearchResults(data.tickets);
+        }
         setHasSearched(true);
       } else {
         const errorData = await res.json();
-        setSearchError(errorData.error || "Ocurrió un error al buscar el boleto.");
+        setSearchError(errorData.error || "Ocurrió un error al buscar.");
       }
     } catch {
       setSearchError("Error de conexión. Inténtalo de nuevo.");
@@ -609,17 +615,17 @@ export default function RifaPage() {
           <div className="lookup-card">
             <h2 className="lookup-title">Consulta tu Boleto</h2>
             <p className="lookup-subtitle">
-              Ingresa el número de tu boleto para verificar su estado de compra, los datos de registro y qué integrante lo vendió.
+              Ingresa el número de tu boleto o tu nombre de registro para verificar su estado de compra y detalles.
             </p>
 
             <form onSubmit={handleSearch} className="lookup-form">
               <div className="input-wrap">
-                <i className="fas fa-hashtag input-icon"></i>
+                <i className="fas fa-search input-icon"></i>
                 <input
-                  type="number"
-                  placeholder="Ej: 7, 14, 25..."
-                  value={ticketNumber}
-                  onChange={(e) => setTicketNumber(e.target.value)}
+                  type="text"
+                  placeholder="Ej: 7, Carlos Mendoza..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="search-input"
                   required
                 />
@@ -646,55 +652,106 @@ export default function RifaPage() {
 
             {hasSearched && (
               <div className="ticket-result-card">
-                {ticket ? (
-                  <div className="ticket-sold-box">
-                    <div className="ticket-sold-header">
-                      <div>
-                        <div className="ticket-num-display">Boleto Nº {ticket.number}</div>
-                        <div className="ticket-num-sub">Rifa Pro Fondos · Guerreros de Cristo</div>
-                      </div>
-                      <span className={`status-badge ${ticket.paid ? "status-badge-paid" : "status-badge-pending"}`}>
-                        <i className={`fas ${ticket.paid ? "fa-check-circle" : "fa-clock"}`}></i>
-                        {ticket.paid ? "Pagado" : "Pendiente"}
-                      </span>
-                    </div>
-
-                    <div className="ticket-sold-body">
-                      <div className="ticket-details-grid">
+                {!isNaN(parseInt(searchQuery)) && /^\d+$/.test(searchQuery.trim()) ? (
+                  singleResult ? (
+                    <div className="ticket-sold-box">
+                      <div className="ticket-sold-header">
                         <div>
-                          <span className="detail-label">Comprado por</span>
-                          <span className="detail-val">{ticket.clientName}</span>
-                          <span className="detail-sub">{maskPhone(ticket.clientPhone)}</span>
+                          <div className="ticket-num-display">Boleto Nº {singleResult.number}</div>
+                          <div className="ticket-num-sub">Rifa Pro Fondos · Guerreros de Cristo</div>
                         </div>
-                        <div>
-                          <span className="detail-label">Precio</span>
-                          <span className="detail-val">S/. {ticket.price.toFixed(2)}</span>
+                        <span className={`status-badge ${singleResult.paid ? "status-badge-paid" : "status-badge-pending"}`}>
+                          <i className={`fas ${singleResult.paid ? "fa-check-circle" : "fa-clock"}`}></i>
+                          {singleResult.paid ? "Pagado" : "Pendiente"}
+                        </span>
+                      </div>
+
+                      <div className="ticket-sold-body">
+                        <div className="ticket-details-grid">
+                          <div>
+                            <span className="detail-label">Comprado por</span>
+                            <span className="detail-val">{singleResult.clientName}</span>
+                            <span className="detail-sub">{maskPhone(singleResult.clientPhone)}</span>
+                          </div>
+                          <div>
+                            <span className="detail-label">Precio</span>
+                            <span className="detail-val">S/. {singleResult.price.toFixed(2)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="ticket-sold-footer">
-                      <span>Registrado por: <strong>{ticket.soldBy?.name ?? "—"}</strong></span>
-                      <strong className="text-[11px] uppercase tracking-wider text-emerald-400">Vendido</strong>
+                      <div className="ticket-sold-footer">
+                        <span>Registrado por: <strong>{singleResult.soldBy?.name ?? "—"}</strong></span>
+                        <strong className="text-[11px] uppercase tracking-wider text-emerald-400">Vendido</strong>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="ticket-available-box">
+                      <i className="fas fa-check-circle available-icon"></i>
+                      <h3 className="available-title">Boleto Disponible</h3>
+                      <p className="available-text">
+                        Este número de boleto aún no ha sido registrado. Si deseas adquirirlo, por favor ponte en contacto con alguno de nuestros integrantes autorizados.
+                      </p>
+                      <a
+                        href={`https://wa.me/51993790722?text=Hola,%20quiero%20comprar%20el%20boleto%20Nº%20${searchQuery}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-search bg-[#25D366] hover:bg-[#20ba5a] text-white"
+                        style={{ height: 40, fontSize: 11, border: "none" }}
+                      >
+                        <i className="fab fa-whatsapp"></i> Quiero Comprar
+                      </a>
+                    </div>
+                  )
                 ) : (
-                  <div className="ticket-available-box">
-                    <i className="fas fa-check-circle available-icon"></i>
-                    <h3 className="available-title">Boleto Disponible</h3>
-                    <p className="available-text">
-                      Este número de boleto aún no ha sido registrado. Si deseas adquirirlo, por favor ponte en contacto con alguno de nuestros integrantes autorizados.
-                    </p>
-                    <a
-                      href={`https://wa.me/51993790722?text=Hola,%20quiero%20comprar%20el%20boleto%20Nº%20${ticketNumber}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-search bg-[#25D366] hover:bg-[#20ba5a] text-white"
-                      style={{ height: 40, fontSize: 11, border: "none" }}
-                    >
-                      <i className="fab fa-whatsapp"></i> Quiero Comprar
-                    </a>
-                  </div>
+                  searchResults.length > 0 ? (
+                    <div className="flex flex-col gap-5">
+                      <h3 className="text-sm font-bold text-[#F5BE27] uppercase tracking-wider mb-1">
+                        Boletos encontrados para "{searchQuery}" ({searchResults.length})
+                      </h3>
+                      {searchResults.map((t) => (
+                        <div key={t.id} className="ticket-sold-box">
+                          <div className="ticket-sold-header">
+                            <div>
+                              <div className="ticket-num-display">Boleto Nº {t.number}</div>
+                              <div className="ticket-num-sub">Rifa Pro Fondos · Guerreros de Cristo</div>
+                            </div>
+                            <span className={`status-badge ${t.paid ? "status-badge-paid" : "status-badge-pending"}`}>
+                              <i className={`fas ${t.paid ? "fa-check-circle" : "fa-clock"}`}></i>
+                              {t.paid ? "Pagado" : "Pendiente"}
+                            </span>
+                          </div>
+
+                          <div className="ticket-sold-body">
+                            <div className="ticket-details-grid">
+                              <div>
+                                <span className="detail-label">Comprado por</span>
+                                <span className="detail-val">{t.clientName}</span>
+                                <span className="detail-sub">{maskPhone(t.clientPhone)}</span>
+                              </div>
+                              <div>
+                                <span className="detail-label">Precio</span>
+                                <span className="detail-val">S/. {t.price.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="ticket-sold-footer">
+                            <span>Registrado por: <strong>{t.soldBy?.name ?? "—"}</strong></span>
+                            <strong className="text-[11px] uppercase tracking-wider text-emerald-400">Vendido</strong>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="ticket-available-box" style={{ borderColor: "rgba(255, 255, 255, 0.1)" }}>
+                      <i className="fas fa-search available-icon text-gray-500"></i>
+                      <h3 className="available-title text-gray-400">Sin Resultados</h3>
+                      <p className="available-text">
+                        No se encontraron boletos registrados a nombre de "{searchQuery}".
+                      </p>
+                    </div>
+                  )
                 )}
               </div>
             )}

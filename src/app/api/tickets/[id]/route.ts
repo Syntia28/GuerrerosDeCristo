@@ -46,7 +46,7 @@ export async function PUT(
       paid: paid !== undefined ? !!paid : ticket.paid,
       clientName: clientName !== undefined ? clientName : ticket.clientName,
       clientPhone: clientPhone !== undefined ? clientPhone : ticket.clientPhone,
-      price: price !== undefined ? parseFloat(price) : ticket.price
+      price: 5.0
     };
 
     // Only allow admin to reassign seller

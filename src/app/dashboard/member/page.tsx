@@ -25,11 +25,16 @@ export default function MemberDashboard() {
   const router = useRouter();
 
   // Form Fields
-  const [selectedNum, setSelectedNum] = useState<number | "">("");
+  const [selectedNums, setSelectedNums] = useState<number[]>([]);
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
-  const [price, setPrice] = useState(10);
+  const [price, setPrice] = useState(0);
   const [paid, setPaid] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    setPrice(selectedNums.length * 5);
+  }, [selectedNums]);
 
   // Stats
   const [stats, setStats] = useState({
@@ -78,8 +83,8 @@ export default function MemberDashboard() {
 
   const handleRegisterSale = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedNum === "") {
-      setError("Por favor, selecciona un número de boleto.");
+    if (selectedNums.length === 0) {
+      setError("Por favor, selecciona al menos un número de boleto.");
       return;
     }
 
@@ -92,7 +97,7 @@ export default function MemberDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          number: selectedNum,
+          numbers: selectedNums,
           clientName,
           clientPhone,
           price,
@@ -102,9 +107,10 @@ export default function MemberDashboard() {
 
       const data = await res.json();
       if (res.ok) {
-        setSuccessMsg(`¡Boleto #${selectedNum} registrado con éxito!`);
+        const label = selectedNums.length === 1 ? `Boleto #${selectedNums[0]}` : `Boletos #${selectedNums.sort((a,b)=>a-b).join(", #")}`;
+        setSuccessMsg(`¡${label} registrado(s) con éxito!`);
         // Reset form
-        setSelectedNum("");
+        setSelectedNums([]);
         setClientName("");
         setClientPhone("");
         setPaid(false);
@@ -232,14 +238,18 @@ export default function MemberDashboard() {
                   {Array.from({ length: TOTAL_TICKETS }, (_, idx) => {
                     const num = idx + 1;
                     const isSold = soldNumbers.includes(num);
-                    const isSelected = selectedNum === num;
+                    const isSelected = selectedNums.includes(num);
 
                     return (
                       <button
                         key={num}
                         type="button"
                         onClick={() => {
-                          if (!isSold) setSelectedNum(num);
+                          if (!isSold) {
+                            setSelectedNums((prev) =>
+                              prev.includes(num) ? prev.filter((n) => n !== num) : [...prev, num]
+                            );
+                          }
                         }}
                         className={`ticket-number-btn ${isSold
                             ? "ticket-btn-sold"
@@ -267,11 +277,11 @@ export default function MemberDashboard() {
 
               <form onSubmit={handleRegisterSale} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-gray-300">Número de Boleto Seleccionado</label>
+                  <label className="text-xs font-semibold text-gray-300">Boletos Seleccionados</label>
                   <input
-                    type="number"
-                    value={selectedNum}
-                    placeholder="Elige un número de la grilla de la izquierda"
+                    type="text"
+                    value={selectedNums.sort((a, b) => a - b).join(", ")}
+                    placeholder="Elige uno o más números del mapa de la izquierda"
                     className="glass-input text-[#F5BE27] font-bold"
                     readOnly
                     required
@@ -304,12 +314,12 @@ export default function MemberDashboard() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-gray-300">Precio (S/.)</label>
+                    <label className="text-xs font-semibold text-gray-300">Precio Total (S/.)</label>
                     <input
                       type="number"
                       value={price}
-                      onChange={(e) => setPrice(parseFloat(e.target.value))}
-                      className="glass-input"
+                      className="glass-input font-bold"
+                      readOnly
                       required
                     />
                   </div>
@@ -340,9 +350,21 @@ export default function MemberDashboard() {
 
         {/* History Table */}
         <div className="glass-card p-6">
-          <h3 className="text-lg font-bold text-[#F5BE27] mb-4 uppercase tracking-wider">
-            <i className="fas fa-list-alt"></i> Registro y Detalle de Ventas
-          </h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h3 className="text-lg font-bold text-[#F5BE27] uppercase tracking-wider m-0">
+              <i className="fas fa-list-alt"></i> Registro y Detalle de Ventas
+            </h3>
+            <div className="relative w-full sm:w-60">
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+              <input
+                type="text"
+                placeholder="Buscar por número o cliente..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="glass-input pl-9 text-xs py-2 w-full"
+              />
+            </div>
+          </div>
 
           {loading ? (
             <div className="py-10 text-center text-gray-500">
@@ -354,54 +376,76 @@ export default function MemberDashboard() {
               Aún no se han registrado ventas de rifas.
             </div>
           ) : (
-            <div className="custom-table-container">
-              <table className="custom-table">
-                <thead>
-                  <tr>
-                    <th>Boleto</th>
-                    <th>Cliente</th>
-                    <th>Teléfono</th>
-                    <th>Precio</th>
-                    <th>¿Pagado?</th>
-                    <th>Registrado Por</th>
-                    <th className="text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tickets.map((ticket) => (
-                    <tr key={ticket.id}>
-                      <td className="font-extrabold text-[#F5BE27]">#{ticket.number}</td>
-                      <td className="font-semibold text-white">{ticket.clientName}</td>
-                      <td>{ticket.clientPhone}</td>
-                      <td className="font-medium">S/. {ticket.price.toFixed(2)}</td>
-                      <td>
-                        <button
-                          type="button"
-                          onClick={() => handleTogglePaid(ticket)}
-                          className={`py-1 px-3 rounded-full text-xs font-bold border transition-all ${ticket.paid
-                              ? "bg-emerald-950/30 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500 hover:text-white"
-                              : "bg-amber-950/30 text-amber-400 border-amber-500/40 hover:bg-amber-500 hover:text-white"
-                            }`}
-                        >
-                          <i className={`fas ${ticket.paid ? "fa-check-circle" : "fa-clock"} mr-1`}></i>
-                          {ticket.paid ? "Pagado" : "Pendiente"}
-                        </button>
-                      </td>
-                      <td className="text-gray-400 text-xs">{ticket.soldBy?.name || "Desconocido"}</td>
-                      <td className="text-right">
-                        <button
-                          onClick={() => handleDeleteTicket(ticket.id, ticket.number)}
-                          className="p-1 px-2 rounded bg-red-950/30 hover:bg-red-600/80 text-red-300 hover:text-white border border-red-500/20 text-xs transition-all"
-                          title="Cancelar Venta"
-                        >
-                          <i className="fas fa-trash-alt"></i> Cancelar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            (() => {
+              const filteredTickets = tickets.filter((t) => {
+                const query = searchQuery.trim().toLowerCase();
+                if (!query) return true;
+                return (
+                  t.number.toString().includes(query) ||
+                  t.clientName.toLowerCase().includes(query) ||
+                  t.clientPhone.includes(query)
+                );
+              });
+
+              if (filteredTickets.length === 0) {
+                return (
+                  <div className="py-10 text-center text-gray-500 text-sm">
+                    No se encontraron ventas con los filtros indicados.
+                  </div>
+                );
+              }
+
+              return (
+                <div className="custom-table-container">
+                  <table className="custom-table">
+                    <thead>
+                      <tr>
+                        <th>Boleto</th>
+                        <th>Cliente</th>
+                        <th>Teléfono</th>
+                        <th>Precio</th>
+                        <th>¿Pagado?</th>
+                        <th>Registrado Por</th>
+                        <th className="text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTickets.map((ticket) => (
+                        <tr key={ticket.id}>
+                          <td className="font-extrabold text-[#F5BE27]">#{ticket.number}</td>
+                          <td className="font-semibold text-white">{ticket.clientName}</td>
+                          <td>{ticket.clientPhone}</td>
+                          <td className="font-medium">S/. {ticket.price.toFixed(2)}</td>
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePaid(ticket)}
+                              className={`py-1 px-3 rounded-full text-xs font-bold border transition-all ${ticket.paid
+                                  ? "bg-emerald-950/30 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500 hover:text-white"
+                                  : "bg-amber-950/30 text-amber-400 border-amber-500/40 hover:bg-amber-500 hover:text-white"
+                                }`}
+                            >
+                              <i className={`fas ${ticket.paid ? "fa-check-circle" : "fa-clock"} mr-1`}></i>
+                              {ticket.paid ? "Pagado" : "Pendiente"}
+                            </button>
+                          </td>
+                          <td className="text-gray-400 text-xs">{ticket.soldBy?.name || "Desconocido"}</td>
+                          <td className="text-right">
+                            <button
+                              onClick={() => handleDeleteTicket(ticket.id, ticket.number)}
+                              className="p-1 px-2 rounded bg-red-950/30 hover:bg-red-600/80 text-red-300 hover:text-white border border-red-500/20 text-xs transition-all"
+                              title="Cancelar Venta"
+                            >
+                              <i className="fas fa-trash-alt"></i> Cancelar
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()
           )}
         </div>
 

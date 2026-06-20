@@ -3,28 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 
-type Tab = "login" | "register";
-
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
-  const handleTabChange = (tab: Tab) => {
-    setActiveTab(tab);
-    setError("");
-    setSuccess("");
-    setName("");
-    setUsername("");
-    setPassword("");
-    setShowPassword(false);
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,31 +29,6 @@ export default function AuthPage() {
         setTimeout(() => { window.location.href = "/dashboard/member"; }, 1000);
       } else {
         setError(data.error || "Usuario o contraseña incorrectos.");
-      }
-    } catch {
-      setError("Error de red. Inténtalo de nuevo.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, username, password }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setSuccess("Registro exitoso. Iniciando sesión...");
-        setTimeout(() => { window.location.href = "/dashboard/member"; }, 1000);
-      } else {
-        setError(data.error || "Ocurrió un error al registrarse.");
       }
     } catch {
       setError("Error de red. Inténtalo de nuevo.");
@@ -416,24 +377,6 @@ export default function AuthPage() {
             <div className="auth-subtitle">Control de Rifas y Ventas</div>
           </div>
 
-          {/* ── TABS ── */}
-          <div className="auth-tabs">
-            <button
-              type="button"
-              className={`auth-tab${activeTab === "login" ? " active" : ""}`}
-              onClick={() => handleTabChange("login")}
-            >
-              Iniciar Sesión
-            </button>
-            <button
-              type="button"
-              className={`auth-tab${activeTab === "register" ? " active" : ""}`}
-              onClick={() => handleTabChange("register")}
-            >
-              Registrarse
-            </button>
-          </div>
-
           {/* ── BODY ── */}
           <div className="auth-body">
 
@@ -458,198 +401,81 @@ export default function AuthPage() {
             )}
 
             {/* ── LOGIN FORM ── */}
-            {activeTab === "login" && (
-              <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                <div className="auth-fields-group">
-                  {/* Usuario */}
-                  <div className="auth-field">
-                    <label className="auth-label">
-                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      Usuario de Integrante
-                    </label>
-                    <div className="auth-input-wrap">
-                      <input
-                        type="text"
-                        placeholder="Ingresa tu usuario"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="auth-input"
-                        autoComplete="username"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* Contraseña */}
-                  <div className="auth-field">
-                    <label className="auth-label">
-                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      Contraseña
-                    </label>
-                    <div className="auth-input-wrap">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Ingresa tu contraseña"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="auth-input auth-input-with-toggle"
-                        autoComplete="current-password"
-                        required
-                      />
-                      <button type="button" className="auth-eye" onClick={() => setShowPassword(!showPassword)}>
-                        {showPassword ? (
-                          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                          </svg>
-                        ) : (
-                          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
+            <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div className="auth-fields-group">
+                {/* Usuario */}
+                <div className="auth-field">
+                  <label className="auth-label">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Usuario de Integrante
+                  </label>
+                  <div className="auth-input-wrap">
+                    <input
+                      type="text"
+                      placeholder="Ingresa tu usuario"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="auth-input"
+                      autoComplete="username"
+                      required
+                    />
                   </div>
                 </div>
 
-                <button type="submit" disabled={loading} className="auth-submit">
-                  {loading ? (
-                    <div className="auth-spinner" />
-                  ) : (
-                    <>
-                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                          d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
-                      </svg>
-                      Iniciar Sesión
-                    </>
-                  )}
-                </button>
-
-                <div className="auth-footer-link">
-                  ¿No tienes cuenta?{" "}
-                  <a href="#" onClick={(e) => { e.preventDefault(); handleTabChange("register"); }}>
-                    Regístrate aquí
-                  </a>
-                </div>
-              </form>
-            )}
-
-            {/* ── REGISTER FORM ── */}
-            {activeTab === "register" && (
-              <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                <div className="auth-fields-group">
-                  {/* Nombre */}
-                  <div className="auth-field">
-                    <label className="auth-label">
-                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Nombre Completo
-                    </label>
-                    <div className="auth-input-wrap">
-                      <input
-                        type="text"
-                        placeholder="Ej. Juan Pérez"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="auth-input"
-                        autoComplete="name"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* Username */}
-                  <div className="auth-field">
-                    <label className="auth-label">
-                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      Nombre de Usuario
-                    </label>
-                    <div className="auth-input-wrap">
-                      <input
-                        type="text"
-                        placeholder="Ej. jperez"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="auth-input"
-                        autoComplete="username"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* Contraseña */}
-                  <div className="auth-field">
-                    <label className="auth-label">
-                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      Contraseña
-                    </label>
-                    <div className="auth-input-wrap">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Crea tu contraseña"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="auth-input auth-input-with-toggle"
-                        autoComplete="new-password"
-                        required
-                      />
-                      <button type="button" className="auth-eye" onClick={() => setShowPassword(!showPassword)}>
-                        {showPassword ? (
-                          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                          </svg>
-                        ) : (
-                          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
+                {/* Contraseña */}
+                <div className="auth-field">
+                  <label className="auth-label">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Contraseña
+                  </label>
+                  <div className="auth-input-wrap">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Ingresa tu contraseña"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="auth-input auth-input-with-toggle"
+                      autoComplete="current-password"
+                      required
+                    />
+                    <button type="button" className="auth-eye" onClick={() => setShowPassword(!showPassword)}>
+                      {showPassword ? (
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                        </svg>
+                      ) : (
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
                 </div>
+              </div>
 
-                <button type="submit" disabled={loading} className="auth-submit">
-                  {loading ? (
-                    <div className="auth-spinner" />
-                  ) : (
-                    <>
-                      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                          d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                      </svg>
-                      Registrarse como Integrante
-                    </>
-                  )}
-                </button>
-
-                <div className="auth-footer-link">
-                  ¿Ya tienes cuenta?{" "}
-                  <a href="#" onClick={(e) => { e.preventDefault(); handleTabChange("login"); }}>
-                    Inicia sesión aquí
-                  </a>
-                </div>
-              </form>
-            )}
+              <button type="submit" disabled={loading} className="auth-submit">
+                {loading ? (
+                  <div className="auth-spinner" />
+                ) : (
+                  <>
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                        d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
+                    </svg>
+                    Iniciar Sesión
+                  </>
+                )}
+              </button>
+            </form>
 
             {/* Back to home */}
             <div className="auth-divider">Inicio</div>

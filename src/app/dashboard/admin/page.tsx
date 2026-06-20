@@ -75,18 +75,30 @@ export default function AdminDashboard() {
   const [editSoldById, setEditSoldById] = useState<number | "">("");
 
   const [showRegisterSaleModal, setShowRegisterSaleModal] = useState(false);
-  const [regNumber, setRegNumber] = useState<number | "">("");
+  const [regNumbers, setRegNumbers] = useState<number[]>([]);
+  const [selectedAdminNums, setSelectedAdminNums] = useState<number[]>([]);
   const [regClientName, setRegClientName] = useState("");
   const [regClientPhone, setRegClientPhone] = useState("");
-  const [regPrice, setRegPrice] = useState(10);
+  const [regPrice, setRegPrice] = useState(0);
   const [regPaid, setRegPaid] = useState(false);
   const [regSoldById, setRegSoldById] = useState<number | "">("");
+
+  useEffect(() => {
+    setRegPrice(regNumbers.length * 5);
+  }, [regNumbers]);
 
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserName, setNewUserName] = useState("");
   const [newUserUsername, setNewUserUsername] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserRole, setNewUserRole] = useState("MEMBER");
+
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editUserName, setEditUserName] = useState("");
+  const [editUserUsername, setEditUserUsername] = useState("");
+  const [editUserPassword, setEditUserPassword] = useState("");
+  const [editUserRole, setEditUserRole] = useState("MEMBER");
 
   const TOTAL_TICKETS = 100;
   const soldNumbers = tickets.map((t) => t.number);
@@ -221,8 +233,8 @@ export default function AdminDashboard() {
   };
 
   // Open Register Sale modal
-  const openRegisterSale = (number: number) => {
-    setRegNumber(number);
+  const openRegisterSale = (numbersList: number[]) => {
+    setRegNumbers(numbersList);
     setRegClientName("");
     setRegClientPhone("");
     setRegPrice(10);
@@ -234,24 +246,14 @@ export default function AdminDashboard() {
   // Submit new sale from admin
   const handleRegisterSale = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (regNumber === "" || regSoldById === "") return;
+    if (regNumbers.length === 0 || regSoldById === "") return;
 
     try {
-      // In this system, POST to /api/tickets assigns the ticket to the current session user.
-      // However, we want to allow admin to assign it to ANY user.
-      // We can first create it (associated to admin), and then immediately call PUT to reassign it,
-      // or we can modify the API, but let's check if the POST endpoint supports custom soldById.
-      // Looking at src/app/api/tickets/route.ts POST:
-      // It sets soldById = payload.id (admin ID).
-      // So we can:
-      // 1. Create the sale (POST /api/tickets) which assigns it to the admin.
-      // 2. If the user selected a different seller (regSoldById !== adminId), we call PUT /api/tickets/[newId] to reassign it!
-      // This is extremely robust and requires NO changes to POST API!
       const res = await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          number: regNumber,
+          numbers: regNumbers,
           clientName: regClientName,
           clientPhone: regClientPhone,
           price: regPrice,
@@ -261,19 +263,23 @@ export default function AdminDashboard() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        const createdTicket = data.ticket;
+        const createdTickets = data.tickets || [data.ticket];
         
         // If assigned seller is different from the admin session, update it
-        if (regSoldById !== createdTicket.soldById) {
-          await fetch(`/api/tickets/${createdTicket.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ soldById: regSoldById })
-          });
+        for (const t of createdTickets) {
+          if (regSoldById !== t.soldById) {
+            await fetch(`/api/tickets/${t.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ soldById: regSoldById })
+            });
+          }
         }
 
-        setSuccess(`¡Boleto #${regNumber} registrado y asignado con éxito!`);
+        const label = regNumbers.length === 1 ? `Boleto #${regNumbers[0]}` : `Boletos #${regNumbers.sort((a,b)=>a-b).join(", #")}`;
+        setSuccess(`¡${label} registrado(s) y asignado(s) con éxito!`);
         setShowRegisterSaleModal(false);
+        setSelectedAdminNums([]); // Clear selection
         fetchData();
         setTimeout(() => setSuccess(""), 3000);
       } else {
@@ -312,6 +318,51 @@ export default function AdminDashboard() {
         setTimeout(() => setSuccess(""), 3000);
       } else {
         setError(data.error || "No se pudo registrar el integrante.");
+      }
+    } catch (err) {
+      setError("Error al conectar con la API.");
+    }
+  };
+
+  // Open Edit User modal
+  const openEditUser = (user: User) => {
+    setEditingUser(user);
+    setEditUserName(user.name);
+    setEditUserUsername(user.username);
+    setEditUserPassword("");
+    setEditUserRole(user.role);
+    setShowEditUserModal(true);
+  };
+
+  // Submit edit user form
+  const handleEditUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    try {
+      const body: any = {
+        name: editUserName,
+        username: editUserUsername,
+        role: editUserRole
+      };
+      if (editUserPassword.trim() !== "") {
+        body.password = editUserPassword;
+      }
+
+      const res = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess(`Integrante "${editUserName}" actualizado exitosamente.`);
+        setShowEditUserModal(false);
+        setEditingUser(null);
+        fetchData();
+        setTimeout(() => setSuccess(""), 3000);
+      } else {
+        setError(data.error || "No se pudo actualizar el integrante.");
       }
     } catch (err) {
       setError("Error al conectar con la API.");
@@ -628,6 +679,7 @@ export default function AdminDashboard() {
                       const num = idx + 1;
                       const ticket = tickets.find((t) => t.number === num);
                       const isSold = !!ticket;
+                      const isSelected = selectedAdminNums.includes(num);
 
                       return (
                         <button
@@ -637,11 +689,17 @@ export default function AdminDashboard() {
                             if (isSold) {
                               openEditTicket(ticket);
                             } else {
-                              openRegisterSale(num);
+                              setSelectedAdminNums((prev) =>
+                                prev.includes(num) ? prev.filter((n) => n !== num) : [...prev, num]
+                              );
                             }
                           }}
                           className={`ticket-number-btn text-xs font-bold ${
-                            isSold ? "ticket-btn-sold" : "ticket-btn-available"
+                            isSold
+                              ? "ticket-btn-sold"
+                              : isSelected
+                                ? "ticket-btn-selected"
+                                : "ticket-btn-available"
                           }`}
                           title={isSold ? `Boleto #${num} - ${ticket.clientName} (Vendido por ${ticket.soldBy?.name})` : `Boleto #${num} disponible`}
                         >
@@ -650,6 +708,18 @@ export default function AdminDashboard() {
                       );
                     })}
                   </div>
+
+                  {selectedAdminNums.length > 0 && (
+                    <div className="flex justify-end mt-4">
+                      <button
+                        type="button"
+                        onClick={() => openRegisterSale(selectedAdminNums)}
+                        className="btn btn-primary py-2.5 px-6 text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+                      >
+                        <i className="fas fa-cart-plus"></i> Registrar Venta de Boletos ({selectedAdminNums.length})
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Search, Filter & Sales Table */}
@@ -818,6 +888,13 @@ export default function AdminDashboard() {
                                     <i className="fas fa-exchange-alt"></i> Cambiar Rol
                                   </button>
                                   <button
+                                    onClick={() => openEditUser(user)}
+                                    className="p-1 px-2.5 rounded bg-blue-950/30 hover:bg-blue-600/80 text-blue-300 hover:text-white border border-blue-500/20 text-xs transition-all"
+                                    title="Editar datos de integrante"
+                                  >
+                                    <i className="fas fa-edit"></i> Editar
+                                  </button>
+                                  <button
                                     onClick={() => handleDeleteUser(user)}
                                     className="p-1 px-2.5 rounded bg-red-950/30 hover:bg-red-600/80 text-red-300 hover:text-white border border-red-500/20 text-xs transition-all"
                                     title="Eliminar cuenta de integrante"
@@ -847,10 +924,21 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-6 z-50 animate-fadeIn">
           <div className="glass-card w-full max-w-md p-8 relative border border-[#F5BE27]/20">
             <h3 className="text-lg font-bold text-[#F5BE27] mb-4 uppercase tracking-wider flex items-center gap-2">
-              <i className="fas fa-cart-plus"></i> Registrar Venta (Boleto #{regNumber})
+              <i className="fas fa-cart-plus"></i> Registrar Venta
             </h3>
             
             <form onSubmit={handleRegisterSale} className="flex flex-col gap-4 text-sm text-gray-200">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-gray-300">Boletos Seleccionados</label>
+                <input
+                  type="text"
+                  value={regNumbers.sort((a, b) => a - b).join(", ")}
+                  className="glass-input text-[#F5BE27] font-bold"
+                  readOnly
+                  required
+                />
+              </div>
+
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-300">Nombre del Cliente</label>
                 <input
@@ -877,12 +965,12 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-gray-300">Precio (S/.)</label>
+                  <label className="text-xs font-semibold text-gray-300">Precio Total (S/.)</label>
                   <input
                     type="number"
                     value={regPrice}
-                    onChange={(e) => setRegPrice(parseFloat(e.target.value))}
                     className="glass-input font-bold"
+                    readOnly
                     required
                   />
                 </div>
@@ -972,8 +1060,8 @@ export default function AdminDashboard() {
                   <input
                     type="number"
                     value={editPrice}
-                    onChange={(e) => setEditPrice(parseFloat(e.target.value))}
                     className="glass-input font-bold"
+                    readOnly
                     required
                   />
                 </div>
@@ -1097,6 +1185,83 @@ export default function AdminDashboard() {
                   className="btn btn-primary flex-1 py-2.5"
                 >
                   Crear Cuenta
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: EDIT USER (ADMIN USER UPDATE) */}
+      {showEditUserModal && editingUser && (
+        <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-6 z-50 animate-fadeIn">
+          <div className="glass-card w-full max-w-md p-8 relative border border-[#F5BE27]/20">
+            <h3 className="text-lg font-bold text-[#F5BE27] mb-4 uppercase tracking-wider flex items-center gap-2">
+              <i className="fas fa-user-edit"></i> Editar Integrante GC
+            </h3>
+
+            <form onSubmit={handleEditUserSubmit} className="flex flex-col gap-4 text-sm text-gray-200">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-gray-300">Nombre Completo</label>
+                <input
+                  type="text"
+                  placeholder="Ej. Juan Pérez"
+                  value={editUserName}
+                  onChange={(e) => setEditUserName(e.target.value)}
+                  className="glass-input"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-gray-300">Nombre de Usuario (Login)</label>
+                <input
+                  type="text"
+                  placeholder="Ej. jperez"
+                  value={editUserUsername}
+                  onChange={(e) => setEditUserUsername(e.target.value)}
+                  className="glass-input"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-gray-300">Nueva Contraseña (dejar en blanco para conservar actual)</label>
+                <input
+                  type="password"
+                  placeholder="Nueva contraseña (opcional)"
+                  value={editUserPassword}
+                  onChange={(e) => setEditUserPassword(e.target.value)}
+                  className="glass-input"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-gray-300">Rol del Integrante</label>
+                <select
+                  value={editUserRole}
+                  onChange={(e) => setEditUserRole(e.target.value)}
+                  className="glass-input bg-[#111111] border border-white/10 rounded-lg text-white text-xs py-2 px-3"
+                  required
+                >
+                  <option value="MEMBER">Integrante Común (MEMBER)</option>
+                  <option value="ADMIN">Administrador Completo (ADMIN)</option>
+                </select>
+              </div>
+
+              <div className="flex gap-4 mt-4">
+                <button
+                  type="button"
+                  onClick={() => { setShowEditUserModal(false); setEditingUser(null); }}
+                  className="btn btn-secondary flex-1 py-2.5"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary flex-1 py-2.5"
+                >
+                  Guardar Cambios
                 </button>
               </div>
             </form>
