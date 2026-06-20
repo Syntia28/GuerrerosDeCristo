@@ -6,6 +6,11 @@ import SocialFloating from "./components/SocialFloating";
 export const metadata: Metadata = {
   title: "Guerreros de Cristo | Jóvenes Cristianos",
   description: "Más que un grupo, una familia: jóvenes en excelencia y servicio que te acompañan a descubrir, fortalecer y vivir tu fe en Dios.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -16,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="es" className="scroll-smooth">
       <head>
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
