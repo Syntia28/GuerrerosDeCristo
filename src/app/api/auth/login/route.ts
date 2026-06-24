@@ -14,9 +14,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Find Member (User)
+    // Find Member (User) - convert to lowercase to handle casing insensitively
+    const cleanUsernameOrPhone = usernameOrPhone.trim().toLowerCase();
     const user = await db.user.findUnique({
-      where: { username: usernameOrPhone }
+      where: { username: cleanUsernameOrPhone }
     });
 
     if (!user) {
