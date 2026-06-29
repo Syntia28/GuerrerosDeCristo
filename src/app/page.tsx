@@ -1,6 +1,6 @@
 "use client";
-
 import Link from "next/link";
+import SocialFloating from "./components/SocialFloating";
 
 export default function Home() {
 
@@ -921,8 +921,16 @@ export default function Home() {
             </div>
           </div>
         </footer>
+           <footer>
+              {/* ... tu footer completo ... */}
+              </footer>
 
-      </main>
+                {/* 👇 aquí agregamos el botón Redes */}
+               <SocialFloating />
+
+              
+      </main> 
+      
     </>
   );
 }

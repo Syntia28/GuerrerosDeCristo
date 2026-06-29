@@ -337,6 +337,20 @@ export default function AuthPage() {
           transition: color 0.2s ease;
         }
         .auth-footer-link a:hover { color: var(--gold-hover); text-decoration: underline; }
+        .auth-register-link {
+          text-align: center;
+          font-size: 13px;
+          color: var(--muted);
+        }
+        .auth-register-link a {
+          color: var(--gold);
+          font-weight: 700;
+          text-decoration: none;
+        }
+        .auth-register-link a:hover {
+          color: var(--gold-hover);
+          text-decoration: underline;
+        }
 
         /* ── FIELD GROUP DIVIDER ──────────────────────────────────────── */
         .auth-fields-group {
@@ -476,6 +490,10 @@ export default function AuthPage() {
                 )}
               </button>
             </form>
+
+            <div className="auth-register-link">
+              No tienes cuenta? <Link href="/auth/register">Solicitar acceso</Link>
+            </div>
 
             {/* Back to home */}
             <div className="auth-divider">Inicio</div>
