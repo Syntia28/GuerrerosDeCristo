@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Flujo de Compra Online de Rifa — Guía de instalación
 
-## Getting Started
+## 1. Archivos y dónde van
 
-First, run the development server:
+| Archivo descargado          | Colócalo en tu proyecto en...                  |
+|------------------------------|-------------------------------------------------|
+| `schema.prisma`              | `prisma/schema.prisma` (reemplaza el actual)     |
+| `session.ts`                 | `src/lib/session.ts` (nuevo archivo)             |
+| `orders-route.ts`            | `src/app/api/orders/route.ts` (nuevo archivo)    |
+| `orders-id-route.ts`         | `src/app/api/orders/[id]/route.ts` (nuevo archivo, OJO con la carpeta `[id]` con corchetes) |
+| `comprar-page.tsx`           | `src/app/rifa/comprar/page.tsx` (nuevo archivo)  |
+| `ordenes-admin-page.tsx`     | `src/app/dashboard/admin/ordenes/page.tsx` (nuevo)|
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 2. Ajustes que TÚ debes verificar antes de que funcione
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **Import de Prisma** (`@/lib/db`): en `orders-route.ts` y `orders-id-route.ts` puse
+   `import { prisma } from "@/lib/db";` — si tu archivo donde inicializas
+   `new PrismaClient()` se llama distinto (ej. `lib/prisma.ts`), corrige el import.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. **Nombre de la cookie de sesión** (`src/lib/session.ts`, línea con `cookieStore.get("token")`):
+   ajústalo al nombre real que usas al hacer login. Búscalo en tu
+   `src/app/api/auth/login/route.ts`, en la línea `cookies().set(...)`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. **Después de actualizar el schema**, corre en tu terminal:
+   ```bash
+   npx prisma migrate dev --name add_ticket_orders
+   npx prisma generate
+   ```
 
-## Learn More
+4. **Agregar el link "Comprar Boletos"**: en tu `page.tsx` principal (home), dentro de la
+   sección "Gran Rifa Anual", agrega un botón que lleve a `/rifa/comprar`, por ejemplo
+   junto al botón "Ver Premios y Consultar Boleto" que ya tienes.
 
-To learn more about Next.js, take a look at the following resources:
+5. **Acceso al panel de admin**: agrega un link a `/dashboard/admin/ordenes` en tu
+   Navbar, dentro del bloque que ya muestra "Admin" cuando `user.role === "ADMIN"`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 3. Seguridad — IMPORTANTE
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Revisa que la variable de entorno `JWT_SECRET` esté configurada en Vercel
+(Settings → Environment Variables). Tu código actual tiene un valor por
+defecto inseguro si esa variable falta — sin la variable configurada,
+cualquiera podría forjar un token de administrador.
 
-## Deploy on Vercel
+## 4. Cómo funciona el flujo
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Cliente entra a `/rifa/comprar`, llena nombre/teléfono, elige cantidad,
+   ve el QR de Yape y sube su comprobante (foto/captura).
+2. Se crea un `TicketOrder` con estado `PENDIENTE` (la imagen se guarda como
+   base64 directamente en la base de datos, sin servicios externos).
+3. Un admin entra a `/dashboard/admin/ordenes`, ve el comprobante en miniatura
+   (clic para ampliar) y aprueba o rechaza.
+4. Al aprobar, se generan automáticamente los `Ticket` correspondientes con
+   números consecutivos a partir del último boleto existente, ya marcados
+   como pagados.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 5. Pendiente / mejoras futuras posibles
+- Notificar al cliente por WhatsApp automáticamente cuando se aprueba (requiere
+  una API de WhatsApp Business, no incluido aquí).
+- Mostrar al admin un historial de pedidos aprobados/rechazados (ahora mismo
+  el GET solo trae los `PENDIENTE`, pero el filtro por `status` ya existe).

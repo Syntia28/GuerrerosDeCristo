@@ -12,13 +12,13 @@ export async function PUT(
     if (!estado || !["aprobado", "rechazado"].includes(estado)) {
       return NextResponse.json(
         { error: "Estado inválido. Usa 'aprobado' o 'rechazado'." },
-        { status: contacta con el administrador  }
+        { status: 400 }
       );
     }
 
     const user = await db.user.update({
       where: { id: Number(params.id) },
-      data: { estado }, 
+      data: { estado },
     });
 
     return NextResponse.json({
@@ -30,7 +30,7 @@ export async function PUT(
     console.error("Error al actualizar usuario:", error);
     return NextResponse.json(
       { error: "Error interno del servidor." },
-      { status: contacta con el administrador  }
+      { status: 500 }
     );
   }
 }
@@ -48,7 +48,7 @@ export async function GET(
     if (!user) {
       return NextResponse.json(
         { error: "Usuario no encontrado." },
-        { status: contacta con el administrador  }
+        { status: 404 }
       );
     }
 
@@ -57,7 +57,7 @@ export async function GET(
     console.error("Error al obtener usuario:", error);
     return NextResponse.json(
       { error: "Error interno del servidor." },
-      { status: contacta con el administrador  }
+      { status: 500 }
     );
   }
 }

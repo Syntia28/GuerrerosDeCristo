@@ -7,27 +7,49 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  username     String   @unique
-  passwordHash String
-  name         String
-  role         String   @default("MEMBER") // MEMBER, ADMIN
-  estado       String   @default("pendiente") // pendiente, aprobado, rechazado
-  tickets      Ticket[]
-  createdAt    DateTime @default(now())
+  id              Int           @id @default(autoincrement())
+  username        String        @unique
+  passwordHash    String
+  name            String
+  role            String        @default("MEMBER") // MEMBER, ADMIN
+  estado          String        @default("pendiente") // pendiente, aprobado, rechazado
+  tickets         Ticket[]
+  ordersReviewed  TicketOrder[] @relation("OrderReviewer")
+  createdAt       DateTime      @default(now())
 }
 
 model Ticket {
-  id          Int      @id @default(autoincrement())
-  number      Int      @unique
+  id          Int          @id @default(autoincrement())
+  number      Int          @unique
   clientName  String
   clientPhone String
-  price       Float    @default(10.0)
-  paid        Boolean  @default(false)
-  soldBy      User     @relation(fields: [soldById], references: [id])
+  price       Float        @default(5.0)
+  paid        Boolean      @default(false)
+  soldBy      User         @relation(fields: [soldById], references: [id])
   soldById    Int
-  soldAt      DateTime @default(now())
-  createdAt   DateTime @default(now())
+  soldAt      DateTime     @default(now())
+  createdAt   DateTime     @default(now())
+
+  // NUEVO: vínculo opcional al pedido online que generó este boleto
+  order       TicketOrder? @relation(fields: [orderId], references: [id])
+  orderId     Int?
+}
+
+// NUEVO MODELO: pedido de compra online, pendiente de aprobación manual
+model TicketOrder {
+  id            Int       @id @default(autoincrement())
+  clientName    String
+  clientPhone   String
+  quantity      Int
+  totalPrice    Float
+  receiptImage  String    // imagen del comprobante en base64 (data URL)
+  status        String    @default("PENDIENTE") // PENDIENTE, APROBADO, RECHAZADO
+  rejectReason  String?
+  reviewedBy    User?     @relation("OrderReviewer", fields: [reviewedById], references: [id])
+  reviewedById  Int?
+  reviewedAt    DateTime?
+  tickets       Ticket[]
+  createdAt     DateTime  @default(now())
 }
 
 model Solicitud {

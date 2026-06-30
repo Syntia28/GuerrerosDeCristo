@@ -1,0 +1,81 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { requireAdmin } from "@/lib/session";
+
+// PATCH /api/orders/[id] → body: { action: "approve" | "reject", reason?: string }
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdmin();
+  if (!admin) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const orderId = parseInt(id, 10);
+  if (isNaN(orderId)) {
+    return NextResponse.json({ error: "ID de pedido inválido." }, { status: 400 });
+  }
+
+  const body = await req.json();
+  const { action, reason } = body;
+
+  const order = await db.ticketOrder.findUnique({ where: { id: orderId } });
+  if (!order) {
+    return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
+  }
+  if (order.status !== "PENDIENTE") {
+    return NextResponse.json({ error: "Este pedido ya fue revisado." }, { status: 409 });
+  }
+
+  if (action === "reject") {
+    await db.ticketOrder.update({
+      where: { id: orderId },
+      data: {
+        status: "RECHAZADO",
+        rejectReason: reason || "No especificado",
+        reviewedById: admin.id,
+        reviewedAt: new Date(),
+      },
+    });
+    return NextResponse.json({ ok: true, status: "RECHAZADO" });
+  }
+
+  if (action === "approve") {
+    try {
+      const result = await db.$transaction(async (tx) => {
+        // Calcula el siguiente número de boleto disponible
+        const lastTicket = await tx.ticket.findFirst({ orderBy: { number: "desc" } });
+        const start = lastTicket ? lastTicket.number + 1 : 1;
+
+        const ticketsData = Array.from({ length: order.quantity }, (_, i) => ({
+          number: start + i,
+          clientName: order.clientName,
+          clientPhone: order.clientPhone,
+          price: order.totalPrice / order.quantity,
+          paid: true,
+          soldById: admin.id,
+          orderId: order.id,
+        }));
+
+        await tx.ticket.createMany({ data: ticketsData });
+
+        const updatedOrder = await tx.ticketOrder.update({
+          where: { id: orderId },
+          data: { status: "APROBADO", reviewedById: admin.id, reviewedAt: new Date() },
+        });
+
+        return { updatedOrder, assignedNumbers: ticketsData.map((t) => t.number) };
+      });
+
+      return NextResponse.json({
+        ok: true,
+        status: "APROBADO",
+        ticketNumbers: result.assignedNumbers,
+      });
+    } catch (err) {
+      console.error("Error aprobando pedido:", err);
+      return NextResponse.json({ error: "No se pudo generar los boletos." }, { status: 500 });
+    }
+  }
+
+  return NextResponse.json({ error: "Acción inválida." }, { status: 400 });
+}
