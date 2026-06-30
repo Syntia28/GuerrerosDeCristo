@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -15,6 +12,7 @@ model User {
   passwordHash String
   name         String
   role         String   @default("MEMBER") // MEMBER, ADMIN
+  estado       String   @default("pendiente") // pendiente, aprobado, rechazado
   tickets      Ticket[]
   createdAt    DateTime @default(now())
 }
@@ -30,4 +28,13 @@ model Ticket {
   soldById    Int
   soldAt      DateTime @default(now())
   createdAt   DateTime @default(now())
+}
+
+model Solicitud {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  correo    String   @unique
+  motivo    String
+  estado    String   @default("pendiente") // pendiente, aprobada, rechazada
+  createdAt DateTime @default(now())
 }

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { verifyToken, hashPassword } from "@/lib/auth";
+import { verifyToken } from "@/lib/auth";
 
-export async function POST(req: Request) {
+// GET: listar todos los integrantes
+export async function GET() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("session")?.value;
@@ -20,54 +21,23 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, username, password, role } = await req.json();
-
-    if (!name || !username || !password) {
-      return NextResponse.json(
-        { error: "Todos los campos (nombre completo, usuario y contraseña) son requeridos." },
-        { status: 400 }
-      );
-    }
-
-    const trimmedUsername = username.trim().toLowerCase();
-
-    // Check if username already exists
-    const existingUser = await db.user.findUnique({
-      where: { username: trimmedUsername }
+    const users = await db.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        role: true,
+        estado: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
     });
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "El nombre de usuario ya está registrado." },
-        { status: 400 }
-      );
-    }
-
-    const passwordHash = await hashPassword(password);
-    const userRole = role === "ADMIN" ? "ADMIN" : "MEMBER";
-
-    const user = await db.user.create({
-      data: {
-        name,
-        username: trimmedUsername,
-        passwordHash,
-        role: userRole
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        role: user.role
-      }
-    });
+    return NextResponse.json({ success: true, users });
   } catch (error: any) {
-    console.error("POST admin users API error:", error);
+    console.error("GET admin users API error:", error);
     return NextResponse.json(
-      { error: "Error interno del servidor al registrar el integrante." },
+      { error: "Error interno del servidor al obtener los integrantes." },
       { status: 500 }
     );
   }

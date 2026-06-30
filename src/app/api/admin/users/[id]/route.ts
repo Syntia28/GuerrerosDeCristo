@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyToken, hashPassword } from "@/lib/auth";
 
+// PUT: actualizar datos del integrante (incluye estado)
 export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -30,31 +31,31 @@ export async function PUT(
       );
     }
 
-    const { name, username, role, password } = await req.json();
+    const { name, username, role, password, estado } = await req.json();
 
-    // Find user
-    const user = await db.user.findUnique({
-      where: { id: userId }
-    });
-
+    // Buscar integrante
+    const user = await db.user.findUnique({ where: { id: userId } });
     if (!user) {
       return NextResponse.json({ error: "El integrante no existe." }, { status: 404 });
     }
 
-    // Prepare update data
+    // Preparar datos de actualización
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (role !== undefined) updateData.role = role === "ADMIN" ? "ADMIN" : "MEMBER";
+    if (estado !== undefined && ["pendiente", "aprobado", "rechazado"].includes(estado)) {
+      updateData.estado = estado;
+    }
 
     if (username !== undefined && username.trim() !== "") {
       const trimmedUsername = username.trim().toLowerCase();
       if (trimmedUsername !== user.username) {
-        // Check uniqueness
-        const existingUser = await db.user.findUnique({
-          where: { username: trimmedUsername }
-        });
+        const existingUser = await db.user.findUnique({ where: { username: trimmedUsername } });
         if (existingUser) {
-          return NextResponse.json({ error: "El nombre de usuario ya está registrado por otro integrante." }, { status: 400 });
+          return NextResponse.json(
+            { error: "El nombre de usuario ya está registrado por otro integrante." },
+            { status: 400 }
+          );
         }
         updateData.username = trimmedUsername;
       }
@@ -64,16 +65,11 @@ export async function PUT(
       updateData.passwordHash = await hashPassword(password);
     }
 
-    // Update user
+    // Actualizar integrante
     const updatedUser = await db.user.update({
       where: { id: userId },
       data: updateData,
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        role: true
-      }
+      select: { id: true, name: true, username: true, role: true, estado: true },
     });
 
     return NextResponse.json({ success: true, user: updatedUser });
@@ -86,6 +82,7 @@ export async function PUT(
   }
 }
 
+// DELETE: eliminar integrante (solo usuarios, no clientes ni tickets)
 export async function DELETE(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -113,7 +110,6 @@ export async function DELETE(
       );
     }
 
-    // Prevent admin from deleting themselves
     if (payload.id === userId) {
       return NextResponse.json(
         { error: "No puedes eliminar tu propia cuenta de administrador." },
@@ -121,28 +117,18 @@ export async function DELETE(
       );
     }
 
-    // Check if user exists
-    const user = await db.user.findUnique({
-      where: { id: userId }
-    });
-
+    const user = await db.user.findUnique({ where: { id: userId } });
     if (!user) {
       return NextResponse.json({ error: "El integrante no existe." }, { status: 404 });
     }
 
-    // Run transaction:
-    // 1. Delete/Free all tickets registered by this user to avoid FK constraint errors.
-    // 2. Delete the user.
-    await db.$transaction([
-      db.ticket.deleteMany({
-        where: { soldById: userId }
-      }),
-      db.user.delete({
-        where: { id: userId }
-      })
-    ]);
+    // Eliminar integrante
+    await db.user.delete({ where: { id: userId } });
 
-    return NextResponse.json({ success: true, message: "Integrante y sus boletos asociados eliminados con éxito." });
+    return NextResponse.json({
+      success: true,
+      message: "Integrante eliminado con éxito.",
+    });
   } catch (error: any) {
     console.error("DELETE admin user API error:", error);
     return NextResponse.json(

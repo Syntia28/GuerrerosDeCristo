@@ -434,7 +434,7 @@ export default function MemberDashboard() {
                             <button
                               onClick={() => handleDeleteTicket(ticket.id, ticket.number)}
                               className="p-1 px-2 rounded bg-red-950/30 hover:bg-red-600/80 text-red-300 hover:text-white border border-red-500/20 text-xs transition-all"
-                              title="Cancelar Venta"
+                              title="Cancelar registro de venta"
                             >
                               <i className="fas fa-trash-alt"></i> Cancelar
                             </button>

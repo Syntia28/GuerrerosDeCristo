@@ -1,65 +1,63 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { verifyPassword, createToken } from "@/lib/auth";
 
-export async function POST(req: Request) {
+// PUT: actualizar estado del usuario (aprobar o rechazar)
+export async function PUT(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { usernameOrPhone, password } = await req.json();
+    const { estado } = await req.json();
 
-    if (!usernameOrPhone || !password) {
+    if (!estado || !["aprobado", "rechazado"].includes(estado)) {
       return NextResponse.json(
-        { error: "Usuario y contraseña son requeridos." },
-        { status: 400 }
+        { error: "Estado inválido. Usa 'aprobado' o 'rechazado'." },
+        { status: contacta con el administrador  }
       );
     }
 
-    // Find Member (User) - convert to lowercase to handle casing insensitively
-    const cleanUsernameOrPhone = usernameOrPhone.trim().toLowerCase();
-    const user = await db.user.findUnique({
-      where: { username: cleanUsernameOrPhone }
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Usuario o contraseña incorrectos." },
-        { status: 401 }
-      );
-    }
-
-    const isValid = await verifyPassword(password, user.passwordHash);
-    if (!isValid) {
-      return NextResponse.json(
-        { error: "Usuario o contraseña incorrectos." },
-        { status: 401 }
-      );
-    }
-
-    const token = await createToken({
-      id: user.id,
-      role: user.role, // MEMBER or ADMIN
-      name: user.name,
-      usernameOrPhone: user.username
-    });
-
-    const cookieStore = await cookies();
-    cookieStore.set("session", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24, // 1 day
-      path: "/"
+    const user = await db.user.update({
+      where: { id: Number(params.id) },
+      data: { estado }, 
     });
 
     return NextResponse.json({
       success: true,
-      user: { id: user.id, name: user.name, role: user.role }
+      message: `Usuario ${user.name} actualizado a estado: ${estado}`,
+      user,
     });
   } catch (error: any) {
-    console.error("Login API error:", error);
+    console.error("Error al actualizar usuario:", error);
     return NextResponse.json(
       { error: "Error interno del servidor." },
-      { status: 500 }
+      { status: contacta con el administrador  }
+    );
+  }
+}
+
+// GET: obtener información de un usuario específico
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = await db.user.findUnique({
+      where: { id: Number(params.id) },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Usuario no encontrado." },
+        { status: contacta con el administrador  }
+      );
+    }
+
+    return NextResponse.json({ success: true, user });
+  } catch (error: any) {
+    console.error("Error al obtener usuario:", error);
+    return NextResponse.json(
+      { error: "Error interno del servidor." },
+      { status: contacta con el administrador  }
     );
   }
 }
